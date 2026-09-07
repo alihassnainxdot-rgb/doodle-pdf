@@ -1,0 +1,20 @@
+{
+  "name": "doodle-pdf",
+  "version": "1.0.0",
+  "description": "The Hand-Drawn PDF Workshop with 31 Tools & 100% In-Browser Privacy",
+  "main": "index.html",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File ./start-app.ps1",
+    "start": "powershell -ExecutionPolicy Bypass -File ./start-app.ps1"
+  },
+  "keywords": [
+    "pdf",
+    "pdf-tools",
+    "hand-drawn",
+    "ilovepdf-alternative",
+    "client-side",
+    "privacy-first"
+  ],
+  "author": "",
+  "license": "MIT"
+}

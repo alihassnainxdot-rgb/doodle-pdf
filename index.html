@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoodlePDF ★ Every PDF Tool with Hand-Drawn Charm & 100% Privacy</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fredoka:wght@500;600;700;800&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Hand-Drawn Stylesheet -->
+  <link rel="stylesheet" href="css/handdrawn.css" />
+
+  <!-- Core In-Browser Libraries (100% Client-Side Privacy) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       Header
+       ======================================================================== -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-stamp">
+          <span>DoodlePDF</span>
+          <span class="logo-pencil-icon">✏️</span>
+        </div>
+      </a>
+      <div class="brand-tagline">
+        ★ The Hand-Drawn PDF Workshop ★
+      </div>
+      <div class="header-actions">
+        <div class="badge-privacy">
+          <span>🛡️</span>
+          <span>Zero Cloud Uploads • Files Auto-Purged</span>
+        </div>
+        <button type="button" class="sound-toggle-btn" id="soundToggleBtn">
+          🔊 Sound: ON
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       Tilted Ribbon Tape Banner (Inspired by Screenshot 2)
+       ======================================================================== -->
+  <div class="tape-banner-wrap">
+    <div class="tape-banner">
+      <div class="tape-banner-track">
+        <span class="tape-item"><span class="tape-star">★</span> ZERO CLOUD UPLOADS</span>
+        <span class="tape-item"><span class="tape-star">★</span> FILES AUTO-DELETED AFTER TASK</span>
+        <span class="tape-item"><span class="tape-star">★</span> MERGE PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> SPLIT PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> COMPRESS PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> PDF TO WORD</span>
+        <span class="tape-item"><span class="tape-star">★</span> PDF TO POWERPOINT</span>
+        <span class="tape-item"><span class="tape-star">★</span> PDF TO EXCEL</span>
+        <span class="tape-item"><span class="tape-star">★</span> EDIT PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> SIGN PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> WATERMARK</span>
+        <span class="tape-item"><span class="tape-star">★</span> OCR PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> COMPARE PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> AI SUMMARIZER</span>
+        <span class="tape-item"><span class="tape-star">★</span> TRANSLATE PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> PDF TO MARKDOWN</span>
+        <!-- Repeat for seamless marquee -->
+        <span class="tape-item"><span class="tape-star">★</span> ZERO CLOUD UPLOADS</span>
+        <span class="tape-item"><span class="tape-star">★</span> FILES AUTO-DELETED AFTER TASK</span>
+        <span class="tape-item"><span class="tape-star">★</span> MERGE PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> SPLIT PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> COMPRESS PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> EDIT PDF</span>
+        <span class="tape-item"><span class="tape-star">★</span> SIGN PDF</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       Hero Section (PKLS + Daria collage aesthetics)
+       ======================================================================== -->
+  <section class="hero-section">
+    <div class="hero-grid">
+      <!-- Left Card: Hero Introduction -->
+      <div class="hero-text-card">
+        <span class="hero-badge-pill">DELIBERATELY HANDMADE</span>
+        <h1 class="hero-title">
+          Every PDF tool you need, <br/>
+          <span class="highlight-scribble">doodled to perfection.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Say goodbye to corporate cloud document converters that log or store your files. DoodlePDF combines 
+          <strong>31 complete PDF tools</strong> with playful hand-drawn illustrations, paperclip accents, 
+          and a strict <strong>Zero Cloud Uploads & Auto-Delete Guarantee</strong>!
+        </p>
+        <div class="hero-guarantee-badge">
+          <span class="guarantee-icon">🛡️</span>
+          <div>
+            <strong>100% Client-Side Memory Processing & Auto-Delete Guarantee</strong>
+            <p>Your documents are never uploaded to any remote server or stored in the cloud. All PDF operations run strictly in your browser's temporary memory, and all file buffers are automatically wiped clean the instant your task finishes or when you reset.</p>
+          </div>
+        </div>
+        <div class="hero-handwritten-note" style="margin-top: 14px;">
+          <span>✏️ Pick a tool below to get started!</span>
+        </div>
+      </div>
+
+      <!-- Right Card: Meet the Mascot Crew -->
+      <div class="hero-mascots-card" id="heroMascotsContainer">
+        <!-- Injected via app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Toolbar Section (Search + Category Filter Pills)
+       ======================================================================== -->
+  <section class="toolbar-section">
+    <div class="toolbar-card">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          id="toolSearchInput" 
+          class="search-input" 
+          placeholder="Search 31 doodle tools (e.g. merge, word, sign, ai, ocr, split)..." 
+        />
+      </div>
+
+      <div class="category-pills">
+        <button type="button" class="cat-pill active" data-category="all">
+          <span>✨ All Tools</span>
+          <span class="cat-badge">31</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="organize">
+          <span>📑 Organize</span>
+          <span class="cat-badge">6</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="convert-from">
+          <span>📤 Convert From PDF</span>
+          <span class="cat-badge">5</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="convert-to">
+          <span>📥 Convert To PDF</span>
+          <span class="cat-badge">6</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="edit-sign">
+          <span>✍️ Edit & Sign</span>
+          <span class="cat-badge">5</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="security">
+          <span>🔐 Optimize & Protect</span>
+          <span class="cat-badge">5</span>
+        </button>
+        <button type="button" class="cat-pill" data-category="ai">
+          <span>🤖 AI & Smart</span>
+          <span class="cat-badge">4</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Tools Grid (31 Hand-Drawn Cards)
+       ======================================================================== -->
+  <main class="tools-section">
+    <div class="tools-grid" id="toolsGrid">
+      <!-- Populated dynamically by app.js -->
+    </div>
+  </main>
+
+  <!-- ========================================================================
+       Universal Tool Workspace Modal
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-dialog">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-title-icon" id="modalTitleIcon">
+            <!-- Tool Icon SVG -->
+          </div>
+          <div class="modal-title-text">
+            <h2 id="modalTitleText">Tool Title</h2>
+            <p id="modalDescText">Tool short description goes here.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close modal">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        
+        <!-- Dropzone Section -->
+        <div id="dropzoneSection">
+          <div class="doodle-dropzone" id="universalDropzone" onclick="document.getElementById('universalFileInput').click()">
+            <div class="dropzone-inner">
+              <div class="dropzone-doodle-arrow" id="dropzoneArrow">
+                <!-- SVG Arrow -->
+              </div>
+              <h3 class="dropzone-title" id="dropzoneTitle">Drop your files right here!</h3>
+              <p class="dropzone-hint" id="dropzoneHint">or click the button below to browse</p>
+              <button type="button" class="dropzone-select-btn" onclick="event.stopPropagation(); document.getElementById('universalFileInput').click()">
+                📂 Choose Files from Device
+              </button>
+              <input type="file" id="universalFileInput" style="display: none;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Staging File Tray -->
+        <div class="stage-file-tray" id="fileTraySection" style="display: none;">
+          <div class="tray-header">
+            <span class="tray-title">📄 Selected Document(s)</span>
+            <button type="button" class="btn-hand-secondary" style="font-size: 0.8rem; padding: 4px 10px;" 
+                    onclick="document.getElementById('universalFileInput').click()">
+              + Add More Files
+            </button>
+          </div>
+          <div class="tray-files-grid" id="trayFilesGrid">
+            <!-- Injected thumbnails -->
+          </div>
+        </div>
+
+        <!-- Dynamic Tool Options Panel -->
+        <div class="tool-options-panel" id="toolOptionsSection" style="display: none;">
+          <h4 class="options-title">
+            <span>⚙️ Options & Settings</span>
+          </h4>
+          <div id="toolOptionsContainer">
+            <!-- Injected by app.js based on current tool -->
+          </div>
+        </div>
+
+        <!-- Status / Processing Overlay -->
+        <div class="status-overlay" id="statusOverlay">
+          <div class="status-spinner-doodle" id="statusSpinner">
+            <!-- Injected spinner -->
+          </div>
+          <h3 class="status-text-title" id="statusTitle">Doodling your PDF...</h3>
+          <p class="status-text-desc" id="statusDesc">Processing safely in browser memory — zero cloud uploads!</p>
+        </div>
+
+        <!-- Success Download Card -->
+        <div class="success-card" id="successCard">
+          <h3 class="success-title">🎉 Woohoo! Processing Complete!</h3>
+          <p class="success-note" id="successFilenameNote">★ Your file is ready to download.</p>
+          <div class="auto-purge-notice">
+            🛡️ <strong>Auto-Purge Guarantee:</strong> Source document data and memory buffers are automatically wiped clean immediately after download. Zero files are ever uploaded or retained in the cloud.
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+            <button type="button" class="btn-hand-primary" id="downloadResultBtn" style="background: #059669; font-size: 1.2rem; padding: 14px 32px;">
+              💾 Download File Now
+            </button>
+            <button type="button" class="btn-hand-secondary" id="resetTaskBtn">
+              🔄 Do Another Task
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-hand-secondary" onclick="app.closeModal()">
+          Cancel
+        </button>
+        <button type="button" class="btn-hand-primary" id="executeActionBtn" disabled style="opacity: 0.5;">
+          Process Document
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       Footer
+       ======================================================================== -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-doodle-cat" onclick="app.playSound('pop')" style="cursor: pointer;" title="Pet the cat!">
+        <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M42 142 C38 105 32 75 42 45 C44 38 48 30 54 28 C59 26 65 35 70 42 C85 36 100 37 114 43 C120 34 126 26 132 29 C138 32 136 44 137 54 C145 80 142 110 138 142 Z" fill="#FFFFFF" stroke="#1E1E24" stroke-width="4.5"/>
+          <path d="M48 68 C50 63 60 63 68 64 C76 65 80 72 78 78 C76 84 66 86 56 84 C48 82 46 73 48 68 Z" fill="#1E1E24"/>
+          <path d="M98 67 C100 62 110 62 118 63 C126 64 130 71 128 77 C126 83 116 85 106 83 C98 81 96 72 98 67 Z" fill="#1E1E24"/>
+          <path d="M78 70 L98 69" stroke="#1E1E24" stroke-width="4.5"/>
+          <path d="M82 95 Q87 98 92 95 Q97 98 102 95" stroke="#1E1E24" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="footer-note">
+        "Made with black ink, paper clips, coffee & pure client-side code" ☕
+      </div>
+      <p class="footer-copy">
+        DoodlePDF • Zero Cloud Storage Guarantee • No files are ever uploaded or saved to any cloud server. All documents are processed securely in your browser's memory and automatically deleted immediately after task completion.
+      </p>
+    </div>
+  </footer>
+
+  <!-- App Scripts -->
+  <script src="js/doodles.js"></script>
+  <script src="js/pdf-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
