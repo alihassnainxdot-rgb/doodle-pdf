@@ -18,6 +18,23 @@ class PDFEngine {
     }
   }
 
+  async sendToPython(path, formData) {
+    const response = await fetch(`/api/pdf/${path}`, { method: 'POST', body: formData });
+    if (!response.ok) {
+      let message = `PDF engine error (${response.status})`;
+      try {
+        const payload = await response.json();
+        if (payload.error) message = payload.error;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    return response.blob();
+  }
+
+  uploadBuffer(buffer, name = 'document.pdf') {
+    return new Blob([buffer], { type: 'application/pdf' });
+  }
+
   // ==========================================================================
   // Helper: Read File to ArrayBuffer
   // ==========================================================================
@@ -126,94 +143,29 @@ class PDFEngine {
   // 1. MERGE PDF
   // ==========================================================================
   async mergePDF(buffers) {
-    const { PDFDocument } = window.PDFLib;
-    const mergedDoc = await PDFDocument.create();
-
-    for (const buf of buffers) {
-      const srcDoc = await PDFDocument.load(buf);
-      const copiedPages = await mergedDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-      copiedPages.forEach(p => mergedDoc.addPage(p));
-    }
-
-    const mergedBytes = await mergedDoc.save();
-    return new Blob([mergedBytes], { type: 'application/pdf' });
+    const form = new FormData();
+    buffers.forEach((buffer, index) => form.append('files', this.uploadBuffer(buffer), `document-${index + 1}.pdf`));
+    return this.sendToPython('merge', form);
   }
 
   // ==========================================================================
   // 2. SPLIT PDF
   // ==========================================================================
   async splitPDF(buffer, rangeStr) {
-    const { PDFDocument } = window.PDFLib;
-    const srcDoc = await PDFDocument.load(buffer);
-    const totalPages = srcDoc.getPageCount();
-    
-    // Parse range e.g. "1-3, 5, 7-9"
-    const pageIndices = [];
-    const parts = (rangeStr || '1').split(',').map(s => s.trim());
-    
-    for (const part of parts) {
-      if (part.includes('-')) {
-        const [start, end] = part.split('-').map(n => parseInt(n, 10));
-        if (!isNaN(start) && !isNaN(end)) {
-          for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) {
-            if (!pageIndices.includes(p - 1)) pageIndices.push(p - 1);
-          }
-        }
-      } else {
-        const p = parseInt(part, 10);
-        if (!isNaN(p) && p >= 1 && p <= totalPages) {
-          if (!pageIndices.includes(p - 1)) pageIndices.push(p - 1);
-        }
-      }
-    }
-
-    if (pageIndices.length === 0) {
-      pageIndices.push(0); // fallback to page 1
-    }
-
-    const newDoc = await PDFDocument.create();
-    const copiedPages = await newDoc.copyPages(srcDoc, pageIndices);
-    copiedPages.forEach(p => newDoc.addPage(p));
-
-    const bytes = await newDoc.save();
-    return new Blob([bytes], { type: 'application/pdf' });
+    const form = new FormData();
+    form.append('file', this.uploadBuffer(buffer));
+    form.append('ranges', rangeStr || 'all');
+    return this.sendToPython('split', form);
   }
 
   // ==========================================================================
-  // 3. COMPRESS PDF
+  // 3. COMPRESS PDF - Optimized approach preserving vectors where possible
   // ==========================================================================
-  async compressPDF(buffer, quality = 'recommended') {
-    // Quality profiles
-    let scale = 1.2;
-    let imgQuality = 0.7;
-    if (quality === 'extreme') {
-      scale = 0.8;
-      imgQuality = 0.45;
-    } else if (quality === 'high') {
-      scale = 1.5;
-      imgQuality = 0.85;
-    }
-
-    const pdfJsDoc = await this.loadPdfJsDoc(buffer);
-    const { PDFDocument } = window.PDFLib;
-    const newDoc = await PDFDocument.create();
-
-    for (let i = 1; i <= pdfJsDoc.numPages; i++) {
-      const canvas = await this.renderPageToCanvas(pdfJsDoc, i, scale);
-      const imgDataUrl = canvas.toDataURL('image/jpeg', imgQuality);
-      const embeddedImg = await newDoc.embedJpg(imgDataUrl);
-      
-      const page = newDoc.addPage([canvas.width / scale, canvas.height / scale]);
-      page.drawImage(embeddedImg, {
-        x: 0,
-        y: 0,
-        width: page.getWidth(),
-        height: page.getHeight()
-      });
-    }
-
-    const bytes = await newDoc.save();
-    return new Blob([bytes], { type: 'application/pdf' });
+  async compressPDF(buffer, quality = 'recommended', onProgress) {
+    const form = new FormData();
+    form.append('file', this.uploadBuffer(buffer));
+    form.append('quality', quality);
+    return this.sendToPython('compress', form);
   }
 
   // ==========================================================================
@@ -625,17 +577,10 @@ class PDFEngine {
   // 15. ROTATE PDF
   // ==========================================================================
   async rotatePDF(buffer, rotationDegrees = 90) {
-    const { PDFDocument, degrees } = window.PDFLib;
-    const doc = await PDFDocument.load(buffer);
-    const pages = doc.getPages();
-
-    pages.forEach(p => {
-      const currentRotation = p.getRotation().angle;
-      p.setRotation(degrees((currentRotation + rotationDegrees) % 360));
-    });
-
-    const bytes = await doc.save();
-    return new Blob([bytes], { type: 'application/pdf' });
+    const form = new FormData();
+    form.append('file', this.uploadBuffer(buffer));
+    form.append('degrees', String(rotationDegrees));
+    return this.sendToPython('rotate', form);
   }
 
   // ==========================================================================
@@ -768,31 +713,113 @@ class PDFEngine {
   }
 
   // ==========================================================================
-  // 24. OCR PDF
+  // 24. OCR PDF - Full Tesseract.js integration with progress & multi-lang
   // ==========================================================================
-  async ocrPDF(buffer, onProgress) {
-    // If Tesseract.js is present, run OCR on rendered canvas
-    const { fullText, pages } = await this.extractText(buffer);
+  async ocrPDF(buffer, onProgress, options = {}) {
+    const { lang = 'eng', maxPages = 10, forceOCR = false } = options;
     
-    // Check if pages already contain digital text
-    if (fullText.replace(/--- Page \d+ ---|\s/g, '').length > 50) {
-      return { text: fullText, pages };
+    // First, try to extract existing digital text
+    const { fullText, pages } = await this.extractText(buffer);
+    const extractedTextLength = fullText.replace(/--- Page \d+ ---|\s/g, '').length;
+    
+    // If we have substantial digital text and not forcing OCR, return it
+    if (!forceOCR && extractedTextLength > 100) {
+      if (onProgress) onProgress(pages.length, pages.length);
+      return { text: fullText, pages, method: 'digital-extraction' };
     }
 
-    // Otherwise render image and OCR with Tesseract if loaded
-    if (window.Tesseract) {
-      const pdf = await this.loadPdfJsDoc(buffer);
-      let ocrResult = '';
-      for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
-        if (onProgress) onProgress(i, pdf.numPages);
-        const canvas = await this.renderPageToCanvas(pdf, i, 1.5);
-        const { data: { text } } = await window.Tesseract.recognize(canvas, 'eng');
-        ocrResult += `--- OCR Page ${i} ---\n` + text + '\n\n';
+    // Check if Tesseract is available
+    if (!window.Tesseract) {
+      console.warn('Tesseract.js not loaded, falling back to text extraction');
+      return { text: fullText || 'No text detected. OCR engine not available.', pages, method: 'fallback' };
+    }
+
+    const workerKey = `_tesseractWorker_${lang}`;
+    if (!PDFEngine[workerKey]) {
+      if (onProgress) onProgress(0, 100, 'Loading OCR engine...');
+      PDFEngine[workerKey] = await window.Tesseract.createWorker(lang, 1, {
+        logger: m => {
+          if (m.status === 'recognizing text' && onProgress) {
+            onProgress(Math.round(m.progress * 100), 100, `OCR Page ${m.progress * 100}%`);
+          }
+        }
+      });
+    }
+
+    const worker = PDFEngine[workerKey];
+    const pdf = await this.loadPdfJsDoc(buffer);
+    const pagesToProcess = Math.min(pdf.numPages, maxPages);
+    let ocrResult = '';
+    const ocrPages = [];
+
+    for (let i = 1; i <= pagesToProcess; i++) {
+      if (onProgress) onProgress(i, pagesToProcess, `Processing page ${i}/${pagesToProcess}...`);
+      
+      const canvas = await this.renderPageToCanvas(pdf, i, 2.0); // Higher scale for better OCR
+      const { data: { text, confidence } } = await worker.recognize(canvas);
+      
+      ocrPages.push({
+        pageNum: i,
+        text: text.trim(),
+        confidence: confidence
+      });
+      ocrResult += `--- OCR Page ${i} (Confidence: ${confidence}%) ---\n` + text + '\n\n';
+    }
+
+    // Combine with any digitally extracted text from remaining pages
+    if (pdf.numPages > maxPages) {
+      for (let i = maxPages + 1; i <= pdf.numPages; i++) {
+        const pageText = pages[i - 1]?.text || '';
+        if (pageText.trim()) {
+          ocrResult += `--- Page ${i} (Digital Text) ---\n` + pageText + '\n\n';
+        }
       }
-      return { text: ocrResult };
     }
 
-    return { text: fullText || 'No text detected in document image.' };
+    return { 
+      text: ocrResult || fullText || 'No text detected in document.',
+      pages: ocrPages.length > 0 ? ocrPages : pages,
+      method: 'ocr'
+    };
+  }
+
+  // ==========================================================================
+  // 24b. OCR Image (Single image file)
+  // ==========================================================================
+  async ocrImage(canvas, onProgress, options = {}) {
+    const { lang = 'eng' } = options;
+
+    // Check if Tesseract is available
+    if (!window.Tesseract) {
+      console.warn('Tesseract.js not loaded');
+      return { text: 'OCR engine not available.', method: 'fallback' };
+    }
+
+    // Initialize Tesseract worker (cached globally per language)
+    const workerKey = `_tesseractWorker_${lang}`;
+    if (!PDFEngine[workerKey]) {
+      if (onProgress) onProgress(0, 100, 'Loading OCR engine...');
+      PDFEngine[workerKey] = await window.Tesseract.createWorker(lang, 1, {
+        logger: m => {
+          if (m.status === 'recognizing text' && onProgress) {
+            onProgress(Math.round(m.progress * 100), 100, `OCR ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+    }
+
+    const worker = PDFEngine[workerKey];
+    
+    if (onProgress) onProgress(50, 100, 'Recognizing text...');
+    const { data: { text, confidence } } = await worker.recognize(canvas);
+    
+    if (onProgress) onProgress(100, 100, 'Done!');
+    
+    return { 
+      text: text.trim() || 'No text detected in image.',
+      confidence: confidence,
+      method: 'ocr'
+    };
   }
 
   // ==========================================================================
@@ -1032,6 +1059,25 @@ class PDFEngine {
     });
 
     return new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+  }
+
+  // ==========================================================================
+  // Cleanup: Terminate Tesseract workers to free memory
+  // ==========================================================================
+  static async cleanupOCR() {
+    // Terminate all cached workers (one per language)
+    const keys = Object.keys(PDFEngine).filter(k => k.startsWith('_tesseractWorker_'));
+    for (const key of keys) {
+      const worker = PDFEngine[key];
+      if (worker) {
+        try {
+          await worker.terminate();
+        } catch (e) {
+          console.warn('Error terminating Tesseract worker:', e);
+        }
+        PDFEngine[key] = null;
+      }
+    }
   }
 }
 

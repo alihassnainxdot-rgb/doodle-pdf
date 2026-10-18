@@ -621,7 +621,7 @@ class DoodleApp {
   }
 
   // Auto-Purge Guarantee: Immediately wipes all document buffers and memory
-  purgeMemory() {
+  async purgeMemory() {
     if (this.activeBlobUrl) {
       URL.revokeObjectURL(this.activeBlobUrl);
       this.activeBlobUrl = null;
@@ -640,17 +640,22 @@ class DoodleApp {
     const snapsTray = document.getElementById('capturedSnapsTray');
     if (snapsTray) snapsTray.innerHTML = '';
 
+    // Cleanup OCR worker if exists
+    if (window.PDFEngine && window.PDFEngine.cleanupOCR) {
+      await window.PDFEngine.cleanupOCR();
+    }
+
     console.log('[DoodlePDF] 🛡️ Auto-Purge Activated: Document files and buffers completely wiped from memory.');
   }
 
-  closeModal() {
+  async closeModal() {
     document.getElementById('modalBackdrop').classList.remove('open');
     if (this.cameraStream) {
       this.cameraStream.getTracks().forEach(t => t.stop());
       this.cameraStream = null;
     }
     this.currentTool = null;
-    this.purgeMemory();
+    await this.purgeMemory();
     this.playSound('pop');
   }
 
@@ -703,6 +708,47 @@ class DoodleApp {
               <option value="extreme">Extreme Compression (Smallest file size)</option>
               <option value="high">Less Compression (Highest visual quality)</option>
             </select>
+          </div>
+        `;
+        break;
+
+      case 'ocr_pdf':
+        html = `
+          <div class="options-grid">
+            <div class="option-group">
+              <label class="option-label">OCR Language:</label>
+              <select id="opt_ocr_lang" class="option-select">
+                <option value="eng" selected>English</option>
+                <option value="spa">Spanish</option>
+                <option value="fra">French</option>
+                <option value="deu">German</option>
+                <option value="ita">Italian</option>
+                <option value="por">Portuguese</option>
+                <option value="chi_sim">Chinese (Simplified)</option>
+                <option value="jpn">Japanese</option>
+                <option value="kor">Korean</option>
+                <option value="ara">Arabic</option>
+                <option value="rus">Russian</option>
+              </select>
+            </div>
+            <div class="option-group">
+              <label class="option-label">Max Pages to OCR:</label>
+              <select id="opt_ocr_maxpages" class="option-select">
+                <option value="5">5 Pages (Fast)</option>
+                <option value="10" selected>10 Pages (Balanced)</option>
+                <option value="20">20 Pages (Thorough)</option>
+                <option value="50">50 Pages (Full Doc)</option>
+              </select>
+            </div>
+            <div class="option-group">
+              <label class="option-label">
+                <input type="checkbox" id="opt_ocr_force" />
+                Force OCR even if digital text exists
+              </label>
+            </div>
+          </div>
+          <div style="margin-top: 8px; font-size: 0.8rem; color: #6B7280;">
+            💡 First loads Tesseract.js (~2MB), then processes pages. Large PDFs may take time.
           </div>
         `;
         break;
@@ -870,7 +916,7 @@ class DoodleApp {
         break;
 
       default:
-        html = `<p style="font-size: 0.9rem; color: #4B5563;">Ready to process in-memory with zero cloud uploads.</p>`;
+        html = `<p style="font-size: 0.9rem; color: #4B5563;">Ready to process your document.</p>`;
         break;
     }
 
@@ -1111,7 +1157,7 @@ class DoodleApp {
     // Show status animation
     statusSpinner.innerHTML = DoodleAssets.mascots.coolCat;
     statusTitle.textContent = `Doodling your ${this.currentTool.title}...`;
-    statusDesc.textContent = 'Processing safely in browser memory — zero cloud uploads!';
+    statusDesc.textContent = 'Processing your document…';
     statusOverlay.classList.add('active');
     this.playSound('pencil');
 
@@ -1148,6 +1194,8 @@ class DoodleApp {
         // 3. Compress PDF
         case 'compress_pdf': {
           const quality = document.getElementById('opt_compress_level').value;
+          statusTitle.textContent = 'Compressing PDF…';
+          statusDesc.textContent = 'Optimizing your document with the Python engine…';
           resultBlob = await this.engine.compressPDF(firstBuffer, quality);
           filename = 'compressed_doodle.pdf';
           break;
@@ -1342,9 +1390,53 @@ class DoodleApp {
           break;
         }
 
-        // 24. OCR PDF
+        // 24. OCR PDF / Image
         case 'ocr_pdf': {
-          const ocrRes = await this.engine.ocrPDF(firstBuffer);
+          const lang = document.getElementById('opt_ocr_lang')?.value || 'eng';
+          const maxPages = parseInt(document.getElementById('opt_ocr_maxpages')?.value || '10', 10);
+          const forceOCR = document.getElementById('opt_ocr_force')?.checked || false;
+          
+          let ocrRes;
+          const file = this.selectedFiles[0];
+          const isImage = file && file.type.startsWith('image/');
+          
+          if (isImage) {
+            // Handle image OCR directly
+            const imgUrl = URL.createObjectURL(file);
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = imgUrl;
+            });
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(imgUrl);
+            
+            ocrRes = await this.engine.ocrImage(canvas, (current, total, msg) => {
+              if (msg) {
+                statusDesc.textContent = msg;
+              } else {
+                statusDesc.textContent = `Processing image...`;
+              }
+              statusTitle.textContent = `OCR in Progress`;
+            }, { lang });
+          } else {
+            // Handle PDF OCR
+            ocrRes = await this.engine.ocrPDF(firstBuffer, (current, total, msg) => {
+              if (msg) {
+                statusDesc.textContent = msg;
+              } else {
+                statusDesc.textContent = `Processing page ${current} of ${total}...`;
+              }
+              statusTitle.textContent = `OCR in Progress — ${Math.round((current/total)*100)}%`;
+            }, { lang, maxPages, forceOCR });
+          }
+          
           resultBlob = new Blob([ocrRes.text], { type: 'text/plain;charset=utf-8;' });
           filename = 'ocr_extracted_text.txt';
           break;

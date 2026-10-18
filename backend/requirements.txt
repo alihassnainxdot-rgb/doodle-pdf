@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+gunicorn>=22,<24
+PyMuPDF>=1.24,<2
+pypdf>=4,<6
+python-dotenv>=1,<2
+
